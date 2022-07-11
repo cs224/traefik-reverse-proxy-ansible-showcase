@@ -1,0 +1,45 @@
+global:
+  sendAnonymousUsage: false
+
+log:
+  level: DEBUG
+
+experimental:
+  http3: true
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: web-secure
+          scheme: https
+  web-secure:
+    address: ":443"
+    http2:
+      maxConcurrentStreams: 250
+    http3:
+      advertisedPort: 443
+  traefik:
+    address: ":8081"
+
+providers:
+  file:
+    directory: /etc/traefik/dynamic
+    filename: dynamic.yml
+    watch: true
+  docker:
+    exposedByDefault: false
+    watch: true
+
+api:
+  insecure: true
+
+certificatesResolvers:
+  default:
+    acme:
+      email: cs224@weisser-zwerg.dev
+      storage: /etc/traefik/acme/acme.json
+      httpChallenge:
+        entryPoint: web

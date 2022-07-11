@@ -1,0 +1,53 @@
+
+- name: Creates directory to deploy files to
+  ansible.builtin.file:
+    path: /opt/traefik
+    state: directory
+    mode: '0700'
+    recurse: yes
+
+- name: create additional files
+  ansible.builtin.template:
+    src: '{{ role_path }}/templates/{{ item.src }}'
+    dest: '/opt/traefik/{{ item.src }}'
+    mode: '{{ item.mode }}'
+  with_items:
+    - { src: 'Makefile', mode: '0640' }
+    - { src: 'dc.env', mode: '0640' }
+    - { src: 'docker-compose.yml', mode: '0640' }
+    - { src: 'docker-compose-web4.yml', mode: '0640' }
+
+- name: Creates directory for traefik configuration
+  ansible.builtin.file:
+    path: /opt/traefik/traefik-config
+    state: directory
+    mode: '0750'
+    recurse: yes
+
+- name: create traefik config files
+  ansible.builtin.template:
+    src: '{{ role_path }}/templates/{{ item.src }}'
+    dest: '/opt/traefik/traefik-config/{{ item.src }}'
+    mode: '{{ item.mode }}'
+  with_items:
+    - { src: 'traefik.yml', mode: '0640' }
+    - { src: 'dynamic.yml', mode: '0640' }
+
+- name: create /opt/traefik/traefik-config/acme.json if it does not exist with the correct file access mode
+  ansible.builtin.file:
+    path: /opt/traefik/traefik-config/acme.json
+    state: touch
+    mode: u+rw,g-rwx,o-rwx
+    modification_time: preserve
+    access_time: preserve
+
+- name: set-up docker-compose systemd unit for the traefik infrastructure
+  ansible.builtin.template: src=traefik.service.j2 dest=/etc/systemd/system/traefik.service
+
+- name: enable, restart and daemon-reload for the traefik infrastructure
+  ansible.builtin.systemd:
+    name: traefik
+    enabled: yes
+    state: restarted
+    daemon_reload: yes
+

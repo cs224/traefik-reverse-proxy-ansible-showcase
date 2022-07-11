@@ -1,0 +1,17 @@
+
+services:
+  web4_nginx:
+    image: nginx:1.23.0
+    networks:
+      - main
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.web4.rule=( Host(`{{ ansible_host }}`) && PathPrefix(`/web4`) )
+      - traefik.http.middlewares.web4strip.stripprefix.prefixes=/web4
+      - traefik.http.routers.web4.middlewares=web4strip
+      - traefik.http.routers.web4.tls=true
+
+networks:
+  main:
+    external:
+      name: traefik_default

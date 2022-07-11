@@ -1,0 +1,33 @@
+http:
+  middlewares:
+    demo-whitelist:
+      ipWhiteList:
+        sourceRange:
+         - 127.0.0.1/32
+    strip-prefixes:
+      stripprefix:
+        prefixes:
+          - /web1
+    basic-auth:
+      basicAuth:
+        users:
+          - "test:$apr1$7jRIPN/E$rDmSqqIPaaUY8fmuTc2Gw."
+  routers:
+    web1-https-router:
+      rule: "Host(`{{ ansible_host }}`) && PathPrefix(`/web1`)"
+      service: web1-service
+      middlewares:
+        - strip-prefixes
+      # will terminate the TLS request
+      tls:
+        certResolver: default
+    web1-http-router:
+      rule: "Host(`{{ ansible_host }}`) && PathPrefix(`/web1`)"
+      service: web1-service
+      middlewares:
+        - strip-prefixes
+  services:
+    web1-service:
+      loadBalancer:
+        servers:
+          - url: "http://web1_nginx:80"

@@ -1,0 +1,32 @@
+
+services:
+  web1_nginx:
+    image: nginx:1.23.0
+    env_file:
+      - ./dc.env
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+    ports:
+      - '8080:80'
+  traefik:
+    image: traefik:v2.8.0
+    command: --api.insecure=true --providers.docker
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+      - "127.0.0.1:8081:8081"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+      - ./traefik-config/traefik.yml:/etc/traefik/traefik.yml
+      - ./traefik-config/dynamic.yml:/etc/traefik/dynamic/traefik.yml
+      - ./traefik-config/acme.json:/etc/traefik/acme/acme.json
+  web2_nginx:
+    image: nginx:1.23.0
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.web2.rule=( Host(`{{ ansible_host }}`) && PathPrefix(`/web2`) )
+      - traefik.http.middlewares.web2strip.stripprefix.prefixes=/web2
+      - traefik.http.routers.web2.middlewares=web2strip,basic-auth@file
+      - traefik.http.routers.web2.tls=true
